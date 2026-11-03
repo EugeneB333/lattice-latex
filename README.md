@@ -143,6 +143,12 @@ npm test
 npm run backend:test
 ```
 
+GitHub runs tests and builds on pull requests and pushes to `main`, exercises the
+native TeX/PDF/SyncTeX pipeline, scans code and dependencies, and opens weekly
+dependency updates. Optional AI reviews and suggested PR descriptions are
+disabled until configured. See [GitHub automation](docs/GITHUB.md) for check
+details, local validation commands, and setup.
+
 ## License
 
 Apache-2.0. External programs such as TeX Live, `latexmk`, and language servers retain their own licenses and are invoked as separate tools.

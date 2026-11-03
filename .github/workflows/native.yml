@@ -1,0 +1,32 @@
+name: Native integration
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: native-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  tex-pdf-synctex:
+    name: TeX, PDF, and SyncTeX
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-rust
+      - name: Install native toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            latexmk texlive-latex-extra texlive-xetex texlive-luatex \
+            texlive-fonts-recommended poppler-utils
+      - run: cargo build --locked --manifest-path backend/Cargo.toml
+      - name: Exercise sidecar JSON-RPC with real external tools
+        env:
+          LATTICE_BACKEND: ${{ github.workspace }}/backend/target/debug/lattice-backend
+        run: python3 .github/scripts/native_smoke.py -v

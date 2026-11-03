@@ -1,0 +1,17 @@
+name: Set up Copilot CLI
+description: Install the lockfile-pinned CLI used by optional AI assistance.
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version-file: .nvmrc
+        # This job has a write token; do not save or restore dependency caches.
+        package-manager-cache: false
+    - name: Install Copilot CLI
+      shell: bash
+      working-directory: .github/actions/setup-copilot-cli
+      run: npm ci --ignore-scripts
+    - name: Add CLI to PATH
+      shell: bash
+      run: echo "$GITHUB_WORKSPACE/.github/actions/setup-copilot-cli/node_modules/.bin" >> "$GITHUB_PATH"

@@ -1,0 +1,81 @@
+name: AI assistance
+# Privileged work always uses trusted default-branch code. PR content is read
+# through the API as data: never check out, import, install, or execute PR code.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+permissions:
+  contents: read
+concurrency:
+  group: ai-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  assist:
+    if: >-
+      vars.AI_ASSISTANCE_ENABLED == 'true' &&
+      !github.event.pull_request.draft &&
+      github.actor != 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association)
+    name: AI ${{ matrix.kind }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+    strategy:
+      fail-fast: false
+      matrix:
+        kind: [review, description]
+    steps:
+      - name: Check credential availability
+        id: credentials
+        env:
+          COPILOT_TOKEN: ${{ secrets.COPILOT_PAT }}
+        run: |
+          if [[ -n "$COPILOT_TOKEN" ]]; then
+            echo 'available=true' >> "$GITHUB_OUTPUT"
+          else
+            echo '::notice::AI assistance requires the COPILOT_PAT repository secret.'
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.credentials.outputs.available == 'true'
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Build bounded prompt from API data
+        if: steps.credentials.outputs.available == 'true'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          AI_KIND: ${{ matrix.kind }}
+          PROMPT_PATH: ${{ runner.temp }}/lattice-ai-prompt.md
+        with:
+          script: |
+            await require('./.github/scripts/ai.cjs').collect({ github, context });
+      - uses: ./.github/actions/setup-copilot-cli
+        if: steps.credentials.outputs.available == 'true'
+      - name: Generate suggestion
+        id: inference
+        if: steps.credentials.outputs.available == 'true'
+        continue-on-error: true
+        uses: actions/ai-inference@2c43c91ae16266ca159d311430343c67a5ffa222 # v3
+        with:
+          model: ${{ vars.AI_MODEL || 'gpt-4.1' }}
+          prompt-file: ${{ runner.temp }}/lattice-ai-prompt.md
+          system-prompt-file: .github/prompts/system.md
+          # No tools are allowed: the model produces text only.
+          copilot-allow-tools: ''
+        env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_PAT }}
+      - name: Publish advisory comment
+        if: steps.inference.outcome == 'success'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          AI_KIND: ${{ matrix.kind }}
+          AI_RESPONSE: ${{ steps.inference.outputs.response }}
+        with:
+          script: |
+            await require('./.github/scripts/ai.cjs').publish({ github, context, core });
+      - name: Report unavailable inference
+        if: steps.inference.outcome == 'failure'
+        run: echo '::notice::AI inference failed. Check Copilot access, token permissions, and AI_MODEL. Required CI checks are independent.'

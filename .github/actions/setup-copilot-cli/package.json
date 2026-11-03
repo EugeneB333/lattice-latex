@@ -1,0 +1,8 @@
+{
+  "name": "lattice-github-copilot-cli",
+  "private": true,
+  "description": "Pinned Copilot CLI for optional GitHub AI assistance.",
+  "dependencies": {
+    "@github/copilot": "1.0.83"
+  }
+}
