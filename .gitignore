@@ -1,0 +1,23 @@
+node_modules/
+dist/
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+backend/target/
+.lumen/
+.lattice/
+.aws/
+.codex/
+*.log
+*.aux
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.out
+*.toc
+*.dvi
+/sample_projects/Wave Optics/Wave Optics.pdf
+/sample_projects/Wave Optics/Wave Optics.ps
+.env
+.env.*
+!.env.example

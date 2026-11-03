@@ -1,0 +1,24 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+
+\title{Lattice smoke test}
+\author{Lattice}
+
+\begin{document}
+\maketitle
+\section{A reliable feedback loop}
+This document verifies that the local TeX toolchain is connected correctly.
+\begin{table}[h]
+  \centering
+  \begin{tabular}{lr}
+    \toprule
+    State & Result \\
+    \midrule
+    Source & Ready \\
+    Build & Verified \\
+    \bottomrule
+  \end{tabular}
+  \caption{A minimal compilation fixture.}
+\end{table}
+\end{document}
